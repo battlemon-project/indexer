@@ -1,6 +1,13 @@
-fn main() {
+use actix::System;
+use near_indexer::{
+    indexer_init_configs, AwaitForNodeSyncedEnum, Indexer, IndexerConfig, InitConfigArgs,
+    SyncModeEnum,
+};
+use toy_indexer::{listen_blocks, Result};
+
+fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
-    let home_dir = std::path::PathBuf::from(near_indexer::get_default_home());
+    let home_dir = near_indexer::get_default_home();
 
     let command = args
         .get(1)
@@ -9,7 +16,7 @@ fn main() {
 
     match command {
         "init" => {
-            let config_args = near_indexer::InitConfigArgs {
+            let config_args = InitConfigArgs {
                 chain_id: Some("localnet".to_string()),
                 account_id: None,
                 test_seed: None,
@@ -21,30 +28,30 @@ fn main() {
                 download_config_url: None,
                 boot_nodes: None,
                 download_genesis: false,
-                max_gas_burnt_view: None
+                max_gas_burnt_view: None,
             };
-            near_indexer::indexer_init_configs(&home_dir, config_args);
+            indexer_init_configs(&home_dir, config_args)?;
         }
         "run" => {
-            let indexer_config = near_indexer::IndexerConfig {
-                home_dir: std::path::PathBuf::from(near_indexer::get_default_home()),
-                sync_mode: near_indexer::SyncModeEnum::FromInterruption,
-                await_for_node_synced: near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync,
+            let indexer_config = IndexerConfig {
+                home_dir: near_indexer::get_default_home(),
+                sync_mode: SyncModeEnum::FromInterruption,
+                await_for_node_synced: AwaitForNodeSyncedEnum::WaitForFullSync,
             };
-            let sys = actix::System::new();
+            let sys = System::new();
             sys.block_on(async move {
-                let indexer = near_indexer::Indexer::new(indexer_config);
+                let indexer = Indexer::new(indexer_config);
                 let stream = indexer.streamer();
-                actix::spawn(listen_blocks(stream));
+                actix::spawn(async {
+                    if let Err(e) = listen_blocks(stream).await {
+                        println!("`listen_blocks` is terminated with error: {:#}", e)
+                    }
+                });
             });
-            sys.run().unwrap();
+            sys.run()?;
         }
         _ => panic!("You have to pass `init` or `run` arg"),
     }
-}
 
-async fn listen_blocks(mut stream: tokio::sync::mpsc::Receiver<near_indexer::StreamerMessage>) {
-    while let Some(streamer_message) = stream.recv().await {
-        println!("{}", serde_json::to_value(streamer_message).unwrap());
-    }
+    Ok(())
 }
