@@ -2,7 +2,7 @@ use futures::{join, try_join};
 use near_indexer::near_primitives::types::ShardId;
 use near_indexer::{IndexerExecutionOutcomeWithReceipt, IndexerShard, StreamerMessage};
 use std::time::Duration;
-use tokio::sync::mpsc::{Receiver};
+use tokio::sync::mpsc::Receiver;
 use tokio::time;
 use tokio_stream::wrappers::ReceiverStream;
 use futures::StreamExt;
