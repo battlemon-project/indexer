@@ -30,7 +30,7 @@ async fn handle_message(streamer_message: StreamerMessage) -> Result<()> {
     let nft_events = async {
         for shard in &streamer_message.shards {
             // collect_and_store_nft_events(shard, &streamer_message.block.header.timestamp).await?;
-            println!("handle shards");
+            eprintln!("handle shards");
         }
 
         Ok::<(), GenericError>(())
