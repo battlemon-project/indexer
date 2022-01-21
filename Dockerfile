@@ -22,5 +22,7 @@ RUN apt-get update -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/release/toy_indexer toy_indexer
-RUN  NEAR_HOME=/app ./toy_indexer init \
-     && sed -i 's/"tracked_shards": [],/"tracked_shards": [0],/' config.json
+ENV NEAR_HOME=/app
+RUN ./toy_indexer init \
+     && sed -i 's/"tracked_shards": \[\]/"tracked_shards": [0]/' config.json
+ENTRYPOINT ["./toy_indexer"]
