@@ -2,19 +2,20 @@ use futures::{join, try_join};
 use near_indexer::near_primitives::types::ShardId;
 use near_indexer::{IndexerExecutionOutcomeWithReceipt, IndexerShard, StreamerMessage};
 use std::time::Duration;
-use tokio::sync::mpsc::Receiver;
+use tokio::sync::mpsc::{Receiver};
 use tokio::time;
 use tokio_stream::wrappers::ReceiverStream;
-use tokio_stream::StreamExt;
+use futures::StreamExt;
 
 pub type GenericError = Box<dyn std::error::Error + Sync + Send>;
 pub type Result<T> = std::result::Result<T, GenericError>;
 
-pub async fn listen_blocks(mut stream: Receiver<StreamerMessage>) -> Result<()> {
+pub async fn listen_blocks(stream: Receiver<StreamerMessage>) -> Result<()> {
     let mut handle_messages = ReceiverStream::new(stream).map(|streamer_message| {
         println!("Block height {}", &streamer_message.block.header.height);
         handle_message(streamer_message)
-    });
+    })
+        .buffer_unordered(1);
 
     while let Some(_handled_message) = handle_messages.next().await {}
 
